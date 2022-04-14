@@ -1,79 +1,69 @@
 // Developed with love by Ryan Boyer http://ryanjboyer.com <3
 
+using System;
 using System.Runtime.InteropServices;
+using AOT;
 using UnityEngine;
 
 namespace GyroKit {
     public class GyroController {
+        public delegate void RotationRateAction(double x, double y, double z);
+
+        public static RotationRateAction OnDeviceRotationRaw;
+
+        public static event Action<Vector3> OnDeviceRotation;
+
+        public static void Init() {
 #if UNITY_IOS && !UNITY_EDITOR
-        [DllImport("__Internal")]
-        private static extern double getUpdateInterval();
-
-        [DllImport("__Internal")]
-        private static extern void setUpdateInterval(double interval);
-
-        [DllImport("__Internal")]
-        private static extern bool isDeviceMotionUpdating();
-
-        [DllImport("__Internal")]
-        private static extern double getRotationRateX();
-
-        [DllImport("__Internal")]
-        private static extern double getRotationRateY();
-
-        [DllImport("__Internal")]
-        private static extern double getRotationRateZ();
-
-        [DllImport("__Internal")]
-        private static extern void startDeviceMotionUpdates();
-
-        [DllImport("__Internal")]
-        private static extern void stopDeviceMotionUpdates();
+            setRotationDelegate(RotationUpdated);
 #endif
+        }
 
-        public static float UpdateInterval {
+        public static void StartTracking() {
 #if UNITY_IOS && !UNITY_EDITOR
-            get => (float)getUpdateInterval();
-            set => setUpdateInterval((double)value);
+            startTracking();
+#endif
+        }
+
+        public static void StopTracking() {
+#if UNITY_IOS && !UNITY_EDITOR
+            stopTracking();
+#endif
+        }
+
+        public static void SetUpdateInterval(float dt) {
+#if UNITY_IOS && !UNITY_EDITOR
+            setUpdateInterval((double)dt);
+#endif
+        }
+
+        public static bool IsDeviceMotionAvailable() {
+#if UNITY_IOS && !UNITY_EDITOR
+            return isDeviceMotionAvailable();
 #else
-            get => 0;
-            set { }
+            return false;
 #endif
         }
 
-        public static Vector3 RotationRate {
-            get {
-#if UNITY_IOS && !UNITY_EDITOR
-                float x = (float)getRotationRateX();
-                float y = (float)getRotationRateY();
-                float z = (float)getRotationRateZ();
-                return new Vector3(x, y, z);
-#else
-                return Vector3.zero;
-#endif
-            }
-        }
+        [DllImport("__Internal")]
+        private static extern bool isDeviceMotionAvailable();
 
-        public static bool IsDeviceMotionUpdating {
-            get {
-#if UNITY_IOS && !UNITY_EDITOR
-                return isDeviceMotionUpdating();
-#else
-                return false;
-#endif
-            }
-        }
+        [DllImport("__Internal")]
+        private static extern bool startTracking();
 
-        public static void StartDeviceMotionUpdates() {
-#if UNITY_IOS && !UNITY_EDITOR
-            startDeviceMotionUpdates();
-#endif
-        }
+        [DllImport("__Internal")]
+        private static extern bool stopTracking();
 
-        public static void StopDeviceMotionUpdates() {
-#if UNITY_IOS && !UNITY_EDITOR
-            stopDeviceMotionUpdates();
-#endif
+        [DllImport("__Internal")]
+        private static extern void setRotationDelegate(RotationRateAction callback);
+
+        [DllImport("__Internal")]
+        private static extern void setUpdateInterval(double dt);
+
+        [MonoPInvokeCallback(typeof(RotationRateAction))]
+        private static void RotationUpdated(double x, double y, double z) {
+            OnDeviceRotationRaw?.Invoke(x, y, z);
+            OnDeviceRotation?.Invoke(new Vector3((float)x, (float)y, (float)z));
         }
     }
 }
