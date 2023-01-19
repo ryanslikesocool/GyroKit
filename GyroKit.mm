@@ -57,7 +57,7 @@ static GyroMotion *_instance;
 	{
 		if(motionManager.isDeviceMotionAvailable) {
 			NSLog(@"Motion is available. Started tracking motion");
-			[motionManager startDeviceMotionUpdatesToQueue:[NSOperationQueue mainQueue]
+			[motionManager startDeviceMotionUpdatesToQueue:[NSOperationQueue currentQueue]
 											   withHandler:^(CMDeviceMotion *motion, NSError *error)
 			 {
 				if (motion)
